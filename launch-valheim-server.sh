@@ -55,7 +55,7 @@ log() {
 discord() {
     log "$1"
 
-    ./discord-notify.sh "$1"
+    $SCRIPT_DIR/discord-notify.sh "$1"
 }
 
 error() {

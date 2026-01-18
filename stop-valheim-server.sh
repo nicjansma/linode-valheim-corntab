@@ -30,7 +30,7 @@ log() {
 discord() {
     log "$1"
 
-    ./discord-notify.sh "$1"
+    $SCRIPT_DIR/discord-notify.sh "$1"
 }
 
 error() {
@@ -67,7 +67,8 @@ check_dependencies() {
 
 parse_info_file() {
     if [ ! -f "$INFO_FILE" ]; then
-        error "Server info file not found: $INFO_FILE"
+        # error "Server info file not found: $INFO_FILE"
+        return
     fi
 
     log "Reading server information from $INFO_FILE..."
@@ -256,8 +257,10 @@ cleanup_info_file() {
     TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
     ARCHIVE_FILE="$SCRIPT_DIR/valheim-server-info-${TIMESTAMP}.txt"
 
-    mv "$INFO_FILE" "$ARCHIVE_FILE"
-    log "Server info archived to: $ARCHIVE_FILE"
+    if [ -f "$INFO_FILE" ]; then
+        mv "$INFO_FILE" "$ARCHIVE_FILE"
+        log "Server info archived to: $ARCHIVE_FILE"
+    fi
 }
 
 # =============================================================================

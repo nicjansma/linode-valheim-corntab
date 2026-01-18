@@ -1,4 +1,4 @@
-# linode-valheim-launcher
+# linode-valheim-corntab 🌽
 
 Launches a [Linode](https://www.linode.com/) to run a dedicated [Valheim](https://www.valheimgame.com/) game server.
 
