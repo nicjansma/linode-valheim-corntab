@@ -55,7 +55,7 @@ aws configure
 
 - **Server Configuration**: Copy `.env.example` to `.env` and customize:
   - `LINODE_REGION`, `LINODE_TYPE` - Infrastructure settings
-  - `LINODE_VOLUME_LABEL`, `LINODE_VOLUME_SIZE` - Block storage settings (volume persists between deployments)
+  - `LINODE_VOLUME_LABEL`, `LINODE_VOLUME_SIZE`, `LINODE_VOLUME_MOUNT_POINT` - Block storage settings (volume persists between deployments)
   - `AWS_ROUTE53_HOSTED_ZONE_ID`, `AWS_ROUTE53_RECORD_NAME` - Optional DNS configuration
   - `VALHEIM_SERVER_NAME`, `VALHEIM_WORLD_NAME`, `VALHEIM_SERVER_PASS` - Game server settings
   - `VALHEIM_ADMIN_IDS` - Steam IDs for admin access

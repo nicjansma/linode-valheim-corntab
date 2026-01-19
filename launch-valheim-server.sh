@@ -27,6 +27,7 @@ LINODE_LABEL="${LINODE_LABEL:-valheim-server}"
 LINODE_ROOT_PASS="${LINODE_ROOT_PASS:-}"
 LINODE_VOLUME_LABEL="${LINODE_VOLUME_LABEL:-valheim}"
 LINODE_VOLUME_SIZE="${LINODE_VOLUME_SIZE:-100}"
+LINODE_VOLUME_MOUNT_POINT="${LINODE_VOLUME_MOUNT_POINT:-/dev/disk/by-id/scsi-0xyz}"
 
 # Valheim Server Configuration (defaults if not set in .env)
 VALHEIM_SERVER_NAME="${VALHEIM_SERVER_NAME:-My Valheim Server}"
@@ -292,10 +293,10 @@ runcmd:
 
     # Create mount point and mount
     mkdir -p /data/valheim-server
-    mount /dev/sdc /data/valheim-server
+    mount ${LINODE_VOLUME_MOUNT_POINT} /data/valheim-server
 
     # Add to fstab for persistence
-    echo "/dev/sdc /data/valheim-server ext4 defaults,nofail 0 2" >> /etc/fstab
+    echo "${LINODE_VOLUME_MOUNT_POINT} /data/valheim-server ext4 defaults,nofail 0 2" >> /etc/fstab
 
   # Create data directories
   - mkdir -p /data/valheim-server/config
