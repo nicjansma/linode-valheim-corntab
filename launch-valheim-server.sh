@@ -263,14 +263,32 @@ write_files:
       SERVER_PASS=${VALHEIM_SERVER_PASS}
       ADMINLIST_IDS=${VALHEIM_ADMIN_IDS}
 
+  - path: /etc/cron.hourly/backup-s3.sh
+    content: |
+      #!/bin/bash
+      # Hourly backup script to upload Valheim data to AWS S3
+      export AWS_ACCESS_KEY_ID='${AWS_S3_API_KEY}'
+      export AWS_SECRET_ACCESS_KEY='${AWS_S3_API_SECRET}'
+      aws s3 sync /data/valheim-server/config/backups/ s3://${AWS_S3_BACKUP_BUCKET}/${AWS_S3_BACKUP_PATH}
+    permissions: '0755'
+
 runcmd:
   # Configure firewall
   - ufw allow 22/tcp
   - ufw allow ${VALHEIM_SERVER_PORT}:$((VALHEIM_SERVER_PORT + 2))/udp
   - ufw --force enable
 
+  # APT updates
+  - apt install unzip -y
+
+  # AWS CLI
+  - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  - unzip awscliv2.zip
+  - sudo ./aws/install
+  - rm -rf awscliv2.zip aws
+
   # LongView
-  - curl -s https://lv.linode.com/3E593845-3223-4C80-AC8B33EE001F0085 | sudo bash
+  - curl -s https://lv.linode.com/${LINODE_LONGVIEW_TOKEN} | sudo bash
 
   # Install Docker
   - curl -fsSL https://get.docker.com | sh

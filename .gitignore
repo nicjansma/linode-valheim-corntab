@@ -1,3 +1,4 @@
 .env
 .claude
 valheim-server-info*.txt
+docker-push.sh
