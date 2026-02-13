@@ -263,7 +263,7 @@ write_files:
       SERVER_PASS=${VALHEIM_SERVER_PASS}
       ADMINLIST_IDS=${VALHEIM_ADMIN_IDS}
 
-  - path: /etc/cron.hourly/backup-s3.sh
+  - path: /etc/cron.hourly/backup-s3
     content: |
       #!/bin/bash
       # Hourly backup script to upload Valheim data to AWS S3
