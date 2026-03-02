@@ -6,7 +6,7 @@ FROM ubuntu:latest
 #
 
 # linux packages to install
-ARG RUNTIME_PACKAGE_DEPS="curl python3 python3-pip pipx jq"
+ARG RUNTIME_PACKAGE_DEPS="curl python3 python3-pip pipx jq ssh sshpass"
 
 #
 # Build repo

@@ -426,13 +426,45 @@ main() {
     # Update Route 53 DNS record if configured
     update_route53_record "$LINODE_IP"
 
-    # Wait for setup to complete (wait until connection to server is possible)
+    # Wait for setup to complete and fetch Join Code from server logs
     discord "🎉 Valheim server deployment initiated! Waiting for world to become ready..."
 
-    # NOTE: UDP ports may not respond to ping, so we just wait a fixed time here
-    sleep 300
+    JOIN_CODE=""
+    SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 -o LogLevel=ERROR"
+    MAX_ATTEMPTS=60  # 60 attempts x 30s = 30 minutes max
+    ATTEMPT=0
 
-    discord "🗺️ $VALHEIM_WORLD_NAME is ready! Connect to $AWS_ROUTE53_RECORD_NAME:$VALHEIM_SERVER_PORT or $LINODE_IP:$VALHEIM_SERVER_PORT."
+    log "Polling server logs for Join Code (up to 30 minutes)..."
+
+    while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+        ATTEMPT=$((ATTEMPT + 1))
+        sleep 30
+
+        # Try to fetch the join code from Docker logs via SSH
+        JOIN_CODE=$(sshpass -p "$LINODE_ROOT_PASS" ssh $SSH_OPTS root@"$LINODE_IP" \
+            "docker logs valheim-server 2>&1 | grep -oP 'join code \K[0-9]+' | tail -1" 2>/dev/null || true)
+
+        if [ -n "$JOIN_CODE" ]; then
+            log "Join Code found: $JOIN_CODE (attempt $ATTEMPT)"
+            break
+        fi
+
+        # Log progress every 5 attempts
+        if [ $((ATTEMPT % 5)) -eq 0 ]; then
+            log "Still waiting for Join Code... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+        fi
+    done
+
+    if [ -n "$JOIN_CODE" ]; then
+        if [ -n "$AWS_ROUTE53_RECORD_NAME" ]; then
+            discord "🗺️ $VALHEIM_WORLD_NAME is ready! Join Code: **$JOIN_CODE** — Connect to $AWS_ROUTE53_RECORD_NAME:$VALHEIM_SERVER_PORT or $LINODE_IP:$VALHEIM_SERVER_PORT."
+        else
+            discord "🗺️ $VALHEIM_WORLD_NAME is ready! Join Code: **$JOIN_CODE** — Connect to $LINODE_IP:$VALHEIM_SERVER_PORT."
+        fi
+    else
+        log "Warning: Could not retrieve Join Code after $MAX_ATTEMPTS attempts."
+        discord "🗺️ $VALHEIM_WORLD_NAME is ready! Connect to $AWS_ROUTE53_RECORD_NAME:$VALHEIM_SERVER_PORT or $LINODE_IP:$VALHEIM_SERVER_PORT. (Join Code not available — check logs manually)"
+    fi
 
     echo ""
     echo "=============================================="
@@ -452,6 +484,9 @@ main() {
     echo "  Server Name:   $VALHEIM_SERVER_NAME"
     echo "  World Name:    $VALHEIM_WORLD_NAME"
     echo "  Password:      $VALHEIM_SERVER_PASS"
+    if [ -n "$JOIN_CODE" ]; then
+        echo "  Join Code:     $JOIN_CODE"
+    fi
     if [ -n "$AWS_ROUTE53_RECORD_NAME" ]; then
         echo "  Connect To:    $AWS_ROUTE53_RECORD_NAME:$VALHEIM_SERVER_PORT"
         echo "  (or via IP):   $LINODE_IP:$VALHEIM_SERVER_PORT"
@@ -510,6 +545,10 @@ Valheim:
   World Name: $VALHEIM_WORLD_NAME
   Password: $VALHEIM_SERVER_PASS
 EOF
+
+        if [ -n "$JOIN_CODE" ]; then
+            echo "  Join Code: $JOIN_CODE"
+        fi
 
         if [ -n "$AWS_ROUTE53_RECORD_NAME" ]; then
             echo "  Connect To: $AWS_ROUTE53_RECORD_NAME:$VALHEIM_SERVER_PORT"

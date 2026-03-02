@@ -39,7 +39,10 @@ aws configure
   - Updates Route 53 DNS record (optional) to point to the new server IP
   - Uses cloud-init to bootstrap Docker and deploy the Valheim container
   - Uses `ghcr.io/community-valheim-tools/valheim-server` Docker image
-  - Outputs connection info to `valheim-server-info.txt`
+  - Polls server logs via SSH for the crossplay Join Code (up to 30 minutes)
+  - Sends the Join Code to Discord once the server is ready
+  - Outputs connection info (including Join Code) to `valheim-server-info.txt`
+  - **Requires `sshpass`** for automated SSH to fetch the Join Code
 
 - **stop-valheim-server.sh**: Shutdown script that:
   - Reads Linode label from `valheim-server-info.txt` (or uses configured default)
@@ -53,12 +56,15 @@ aws configure
   - Prompts for confirmation before proceeding
   - **Requires `sshpass`** for automated SSH (optional but recommended)
 
+- **discord-notify.sh**: Sends messages to a Discord channel via webhook. Used by the launch script to post deployment progress and the Join Code.
+
 - **Server Configuration**: Copy `.env.example` to `.env` and customize:
   - `LINODE_REGION`, `LINODE_TYPE` - Infrastructure settings
   - `LINODE_VOLUME_LABEL`, `LINODE_VOLUME_SIZE`, `LINODE_VOLUME_MOUNT_POINT` - Block storage settings (volume persists between deployments)
   - `AWS_ROUTE53_HOSTED_ZONE_ID`, `AWS_ROUTE53_RECORD_NAME` - Optional DNS configuration
   - `VALHEIM_SERVER_NAME`, `VALHEIM_WORLD_NAME`, `VALHEIM_SERVER_PASS` - Game server settings
   - `VALHEIM_ADMIN_IDS` - Steam IDs for admin access
+  - `DISCORD_WEBHOOK_URL`, `DISCORD_USERNAME` - Discord webhook for server notifications
 
 - **DNS Management**: Optionally configure Route 53 to automatically update a DNS record:
   - Set `AWS_ROUTE53_HOSTED_ZONE_ID` to your Route 53 hosted zone ID
@@ -73,18 +79,35 @@ aws configure
 ## Remote Server Management
 
 After deployment, the Valheim server runs on the Linode instance:
+
 - Data persisted at `/data/valheim-server/` on the remote host (mounted from Linode Block Storage volume)
 - The volume persists even if the Linode instance is destroyed - rerunning the script will reattach the same volume
 - Docker compose config at `/opt/valheim/docker-compose.yml`
 - Check status: `ssh root@<IP> 'docker ps'`
 - View logs: `ssh root@<IP> 'docker logs -f valheim-server'`
 
+## Join Code
+
+The Valheim server runs with crossplay enabled (`-crossplay`, `SERVER_PUBLIC=false`). After the world loads, Valheim logs a numeric Join Code that players use to connect via the in-game "Join Game" menu.
+
+The launch script automatically:
+
+1. Polls `docker logs valheim-server` on the remote host every 30 seconds (up to 30 minutes)
+2. Extracts the Join Code using the pattern `join code <digits>`
+3. Sends it to Discord and saves it to `valheim-server-info.txt`
+
+If the Join Code cannot be retrieved automatically, check logs manually:
+
+```bash
+ssh root@<IP> 'docker logs valheim-server 2>&1 | grep "join code"'
+```
+
 ## Server Lifecycle
 
 The typical workflow for managing the Valheim server:
 
 1. **Launch**: Run `./launch-valheim-server.sh` to create a new Linode and volume
-2. **Play**: Players connect and game data is saved to the persistent volume
+2. **Play**: Players connect using the Join Code (posted to Discord) and game data is saved to the persistent volume
 3. **Stop**: Run `./stop-valheim-server.sh` to delete the Linode (stops billing)
 4. **Restart**: Run `./launch-valheim-server.sh` again - it will reuse the existing volume with all saved data
 
