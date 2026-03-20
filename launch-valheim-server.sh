@@ -71,6 +71,9 @@ check_dependencies() {
         error "linode-cli is not installed. Install it with: pip install linode-cli"
     fi
 
+    # upgrade linode-cli
+    pipx upgrade linode-cli
+
     if ! command -v jq &> /dev/null; then
         error "jq is not installed. Install it with your package manager."
     fi
